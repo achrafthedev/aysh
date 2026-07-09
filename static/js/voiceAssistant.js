@@ -32,6 +32,7 @@ let wakeWord = 'aysh';
 let sleepPhrase = 'sleep aysh';
 let autoSleepTimer = null;
 let restartTimer = null;
+let recentRestarts = []; // timestamps, for backoff when the browser keeps ending sessions early
 let orbEl = null;
 let transcriptEl = null;
 
@@ -39,10 +40,55 @@ function normalize(s) {
   return (s || '').toLowerCase().replace(/[^\w\s']/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+// Edit distance between two short strings — used to tolerate speech-to-text
+// mishearing invented wake words. Generic ASR language models bias toward
+// real dictionary words, so "Aysh" (not a word) often comes back as "ash",
+// "ice", "eyes", "ish", etc. rather than literally "aysh".
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const tmp = dp[j];
+      dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+
+function fuzzyThreshold(len) {
+  if (len <= 3) return 1; // "aysh" -> "ash"/"ice" is 1-2 edits; keep short words lenient too
+  if (len <= 6) return 2;
+  return 3;
+}
+
 function containsPhrase(text, phrase) {
   const t = ' ' + normalize(text) + ' ';
   const p = ' ' + normalize(phrase) + ' ';
-  return !!p.trim() && t.includes(p);
+  if (!p.trim()) return false;
+  if (t.includes(p)) return true;
+
+  // Fuzzy fallback: each word of the phrase must appear, in order, among
+  // the transcript's words within a small edit-distance tolerance.
+  const phraseWords = normalize(phrase).split(' ').filter(Boolean);
+  const textWords = normalize(text).split(' ').filter(Boolean);
+  let ti = 0;
+  for (const pw of phraseWords) {
+    const threshold = fuzzyThreshold(pw.length);
+    let found = false;
+    while (ti < textWords.length) {
+      const tw = textWords[ti++];
+      if (levenshtein(tw, pw) <= threshold) { found = true; break; }
+    }
+    if (!found) return false;
+  }
+  return true;
 }
 
 async function loadSettings() {
@@ -123,7 +169,10 @@ function handleUtterance(rawText) {
     clearAutoSleep();
     const norm = normalize(text);
     const idx = norm.indexOf(normalize(wakeWord));
-    const after = text.slice(idx + wakeWord.length).replace(/^[\s,.!:;-]+/, '');
+    // idx is -1 when the wake word only matched fuzzily (mis-transcribed) —
+    // there's no reliable position to slice from, so just treat the whole
+    // utterance as the wake-up and wait for the command separately.
+    const after = idx === -1 ? '' : text.slice(idx + wakeWord.length).replace(/^[\s,.!:;-]+/, '');
     setState(STATES.AWAKE);
     if (after && after.split(/\s+/).length > 1) {
       sendCommand(after);
@@ -198,6 +247,28 @@ function waitForSpeechEnd(prevAutoPlay) {
   }, 250);
 }
 
+// Chromium's "continuous" recognition doesn't actually stay open
+// indefinitely — it frequently ends the session on its own (after each
+// phrase, brief silence, or a network hiccup), and the naive fix of
+// restarting immediately re-acquires the OS microphone every time,
+// which is what makes the mic indicator flicker rapidly. Track recent
+// restarts and back off if they're happening in a tight loop, so the
+// mic is grabbed less often while still recovering automatically.
+function noteRestart() {
+  const now = Date.now();
+  recentRestarts.push(now);
+  recentRestarts = recentRestarts.filter((t) => now - t < 10000);
+}
+
+function restartDelay() {
+  if (recentRestarts.length >= 6) {
+    console.debug('[Aysh Voice] recognition keeps ending quickly — backing off a few seconds.');
+    return 4000;
+  }
+  if (recentRestarts.length >= 3) return 1200;
+  return 300;
+}
+
 function startRecognitionEngine() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return false;
@@ -223,9 +294,13 @@ function startRecognitionEngine() {
   recognition.onerror = (e) => {
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
       disable();
+      return;
     }
     // 'no-speech' / 'aborted' / 'network' are routine for an always-on
-    // recognizer — onend fires right after and restarts it.
+    // recognizer — onend fires right after and restarts it. Logged (not
+    // just a comment) because "the mic light keeps flickering" is much
+    // easier to diagnose with this in the console than by guessing.
+    console.debug('[Aysh Voice] recognition error (routine, will restart):', e.error);
   };
 
   recognition.onend = () => {
@@ -236,12 +311,16 @@ function startRecognitionEngine() {
     if (restartTimer) clearTimeout(restartTimer);
     restartTimer = setTimeout(() => {
       if (!armed) return;
-      try { recognition.start(); } catch (e) { /* already running */ }
-    }, manualRecording ? 1200 : 250);
+      try {
+        recognition.start();
+        noteRestart();
+      } catch (e) { /* already running */ }
+    }, manualRecording ? 1200 : restartDelay());
   };
 
   try {
     recognition.start();
+    recentRestarts = [];
     return true;
   } catch (e) {
     return false;
@@ -249,6 +328,7 @@ function startRecognitionEngine() {
 }
 
 function stopRecognitionEngine() {
+  recentRestarts = [];
   if (restartTimer) {
     clearTimeout(restartTimer);
     restartTimer = null;
