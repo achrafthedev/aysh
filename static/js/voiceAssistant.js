@@ -293,6 +293,7 @@ function beginChunkRecording() {
   mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
   mediaRecorder.start();
   chunkStartedAt = Date.now();
+  console.log('[Aysh Voice] speech detected, recording...');
 }
 
 function finishChunkRecording() {
@@ -306,7 +307,10 @@ function finishChunkRecording() {
     const durationMs = Date.now() - (startedAt || Date.now());
     const chunks = recordedChunks;
     recordedChunks = [];
-    if (durationMs < VAD_MIN_CHUNK_MS || chunks.length === 0) return;
+    if (durationMs < VAD_MIN_CHUNK_MS || chunks.length === 0) {
+      console.log('[Aysh Voice] speech blip too short to bother transcribing (' + durationMs + 'ms) — ignored.');
+      return;
+    }
     const blob = new Blob(chunks, { type: 'audio/webm' });
     transcribeChunk(blob);
   };
@@ -315,13 +319,16 @@ function finishChunkRecording() {
 
 async function transcribeChunk(blob) {
   if (!armed) return;
+  console.log('[Aysh Voice] recorded a chunk (' + blob.size + ' bytes), sending for transcription...');
   if (state === STATES.ASLEEP || state === STATES.AWAKE) updateTranscriptPreview('…');
   try {
     const formData = new FormData();
     formData.append('file', blob, 'aysh-voice-chunk.webm');
     const res = await fetch('/api/stt/transcribe', { method: 'POST', credentials: 'same-origin', body: formData });
     if (!res.ok) {
-      console.log('[Aysh Voice] transcription request failed:', res.status);
+      const errBody = await res.text().catch(() => '');
+      console.log('[Aysh Voice] transcription request failed:', res.status, errBody);
+      updateTranscriptPreview('');
       return;
     }
     const data = await res.json();
@@ -329,9 +336,17 @@ async function transcribeChunk(blob) {
     if (text) {
       console.log('[Aysh Voice] heard:', JSON.stringify(text));
       handleUtterance(text);
+      // handleUtterance only clears the preview via setState if it actually
+      // changes state (wake word matched); clear it here too so a heard-but-
+      // ignored phrase doesn't leave stale text/an ellipsis stuck on screen.
+      if (state === STATES.ASLEEP) updateTranscriptPreview('');
+    } else {
+      console.log('[Aysh Voice] transcription came back empty for that clip.');
+      updateTranscriptPreview('');
     }
   } catch (e) {
     console.log('[Aysh Voice] transcription error:', e.message);
+    updateTranscriptPreview('');
   }
 }
 
