@@ -98,7 +98,20 @@ class STTService:
                 tmp.write(audio_bytes)
                 tmp_path = tmp.name
 
-            kwargs = {}
+            kwargs = {
+                # Silero VAD (bundled with faster-whisper, no extra download)
+                # strips silence/non-speech before decoding. Whisper is
+                # notorious for hallucinating generic YouTube-outro text
+                # ("thanks for watching", "see you next time") on short or
+                # near-silent clips — exactly what an ambient wake-word
+                # listener keeps sending it — and vad_filter is the
+                # documented fix for that specific failure mode.
+                "vad_filter": True,
+                "vad_parameters": {"min_silence_duration_ms": 500},
+                # Don't let one hallucinated segment's text bias the next
+                # segment's decoding within the same clip.
+                "condition_on_previous_text": False,
+            }
             if language:
                 kwargs["language"] = language
 
