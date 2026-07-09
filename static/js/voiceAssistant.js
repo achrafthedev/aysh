@@ -34,9 +34,13 @@ const STATES = {
 const AUTO_SLEEP_MS = 15000;
 const REPLY_START_TIMEOUT_MS = 40000;
 
-// Voice-activity detection tuning for the always-on mic stream.
-const VAD_POLL_MS = 150;
-const VAD_RMS_THRESHOLD = 0.02;
+// Voice-activity detection tuning for the always-on mic stream. Polling
+// more often and triggering on a quieter threshold both trade a bit more
+// CPU/false-positive risk for catching the true onset of a word instead
+// of clipping its first few dozen ms — clipped onsets are a common cause
+// of otherwise-fine short-word transcriptions coming back wrong.
+const VAD_POLL_MS = 80;
+const VAD_RMS_THRESHOLD = 0.015;
 const VAD_SILENCE_HANGOVER_MS = 700;
 const VAD_MIN_CHUNK_MS = 400;
 const VAD_MAX_CHUNK_MS = 8000;
