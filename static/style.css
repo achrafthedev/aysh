@@ -40444,63 +40444,148 @@ body.theme-frosted .modal {
    four render ~88px columns. Each column is a full scrolling chat (code blocks,
    tool output, vote footer), so the text is unreadably over-wrapped and clipped.
    On phones, stack the panes into a single scrollable column instead. */
-/* ── Aysh Voice Assistant — floating wake-word orb ── */
+/* ── Aysh Voice Assistant — floating wake-word HUD orb ──
+   A small sci-fi "AI is listening/thinking/speaking" widget: two
+   counter-rotating segmented rings around a glowing core. The core's glow
+   and scale respond live to --aysh-level (set from real mic RMS in
+   voiceAssistant.js), so it visibly reacts to your actual voice instead of
+   just looping a canned animation. Not a copy of any specific franchise UI
+   — a generic "AI HUD" treatment applied to Aysh's own accent colors. */
 .aysh-voice-orb {
+  --aysh-level: 0;
   position: fixed;
-  right: 20px;
-  bottom: 20px;
-  width: 52px;
-  height: 52px;
+  right: 22px;
+  bottom: 22px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   border: none;
+  background: none;
+  padding: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, #8b5cf6, #ec4899);
-  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35);
   z-index: 8500;
-  transition: transform .15s ease, box-shadow .3s ease, opacity .3s ease;
+  transition: opacity .3s ease;
 }
-.aysh-voice-orb:hover { transform: scale(1.06); }
-.aysh-voice-orb.off {
+.aysh-voice-orb:hover .aysh-orb-core { transform: scale(1.06); }
+
+.aysh-orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.aysh-orb-ring-outer {
+  border: 1.5px dashed currentColor;
+  animation: aysh-ring-spin 16s linear infinite;
+}
+.aysh-orb-ring-inner {
+  inset: 7px;
+  border: 1.5px dotted currentColor;
+  animation: aysh-ring-spin 9s linear infinite reverse;
+}
+.aysh-voice-orb:not(.off) .aysh-orb-ring { opacity: 0.55; }
+.aysh-voice-orb.thinking .aysh-orb-ring-outer { animation-duration: 3s; }
+.aysh-voice-orb.thinking .aysh-orb-ring-inner { animation-duration: 1.6s; }
+.aysh-voice-orb.speaking .aysh-orb-ring { opacity: 0.8; }
+
+.aysh-orb-core {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: color-mix(in srgb, var(--panel) 85%, #888);
   color: color-mix(in srgb, var(--fg) 55%, transparent);
   box-shadow: none;
-  opacity: 0.55;
+  transform: scale(calc(1 + var(--aysh-level) * 0.14));
+  transition: background .3s ease, box-shadow .12s ease, color .3s ease, transform .08s ease-out;
 }
-.aysh-voice-orb.off:hover { opacity: 0.85; }
-.aysh-voice-orb-ring {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  opacity: 0;
-}
-.aysh-voice-orb.asleep .aysh-voice-orb-ring {
-  opacity: 0.55;
-  animation: aysh-orb-pulse 2.4s ease-out infinite;
-}
-.aysh-voice-orb.awake { background: linear-gradient(135deg, #22c55e, #06b6d4); box-shadow: 0 4px 20px rgba(34, 197, 94, 0.45); }
-.aysh-voice-orb.awake .aysh-voice-orb-ring { opacity: 0.6; animation: aysh-orb-pulse 1.1s ease-out infinite; }
-.aysh-voice-orb.thinking { background: linear-gradient(135deg, #f59e0b, #ec4899); }
-.aysh-voice-orb.thinking svg { animation: aysh-orb-spin 1s linear infinite; }
-.aysh-voice-orb.speaking { background: linear-gradient(135deg, #f97316, #ef4444); box-shadow: 0 4px 20px rgba(249, 115, 22, 0.5); }
-.aysh-voice-orb.speaking .aysh-voice-orb-ring { opacity: 0.6; animation: aysh-orb-pulse .7s ease-out infinite; }
+.aysh-voice-orb.off .aysh-orb-core:hover { transform: scale(1.06); }
 
-@keyframes aysh-orb-pulse {
-  0% { transform: scale(1); opacity: 0.55; }
-  100% { transform: scale(1.55); opacity: 0; }
+.aysh-voice-orb.asleep .aysh-orb-core {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  color: #fff;
+  box-shadow: 0 0 calc(10px + var(--aysh-level) * 26px) calc(1px + var(--aysh-level) * 6px) rgba(139, 92, 246, calc(0.35 + var(--aysh-level) * 0.4));
+}
+.aysh-voice-orb.awake .aysh-orb-core {
+  background: linear-gradient(135deg, #22c55e, #06b6d4);
+  color: #fff;
+  box-shadow: 0 0 calc(12px + var(--aysh-level) * 28px) calc(1px + var(--aysh-level) * 6px) rgba(34, 197, 94, calc(0.4 + var(--aysh-level) * 0.4));
+}
+.aysh-voice-orb.thinking .aysh-orb-core {
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+  color: #fff;
+  box-shadow: 0 0 18px 2px rgba(245, 158, 11, 0.5);
+  animation: aysh-core-breathe 1s ease-in-out infinite;
+}
+.aysh-voice-orb.speaking .aysh-orb-core {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: #fff;
+  box-shadow: 0 0 20px 3px rgba(249, 115, 22, 0.55);
+}
+
+.aysh-orb-icon { transition: opacity .15s ease, transform .15s ease; }
+.aysh-voice-orb.thinking .aysh-orb-icon { animation: aysh-orb-spin 1s linear infinite; }
+.aysh-voice-orb.speaking .aysh-orb-icon { opacity: 0; transform: scale(0.6); }
+
+/* Equalizer bars — only shown (and animated) while Aysh is talking. */
+.aysh-orb-bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.aysh-voice-orb.speaking .aysh-orb-bars { opacity: 1; }
+.aysh-orb-bars span {
+  width: 3px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+  animation: aysh-bar-bounce 0.9s ease-in-out infinite;
+}
+.aysh-orb-bars span:nth-child(1) { animation-delay: 0s; }
+.aysh-orb-bars span:nth-child(2) { animation-delay: .12s; }
+.aysh-orb-bars span:nth-child(3) { animation-delay: .24s; }
+.aysh-orb-bars span:nth-child(4) { animation-delay: .12s; }
+.aysh-orb-bars span:nth-child(5) { animation-delay: 0s; }
+
+@keyframes aysh-ring-spin {
+  to { transform: rotate(360deg); }
 }
 @keyframes aysh-orb-spin {
   to { transform: rotate(360deg); }
 }
+@keyframes aysh-core-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes aysh-bar-bounce {
+  0%, 100% { height: 8px; }
+  50% { height: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aysh-orb-ring, .aysh-orb-icon, .aysh-orb-core, .aysh-orb-bars span {
+    animation: none !important;
+  }
+}
 
 .aysh-voice-transcript {
   position: fixed;
-  right: 20px;
-  bottom: 80px;
+  right: 22px;
+  bottom: 92px;
   max-width: min(280px, calc(100vw - 40px));
   padding: 8px 12px;
   border-radius: 10px;
@@ -40519,8 +40604,9 @@ body.theme-frosted .modal {
 .aysh-voice-transcript.visible { opacity: 1; transform: translateY(0); }
 
 @media (max-width: 640px) {
-  .aysh-voice-orb { right: 14px; bottom: 14px; width: 46px; height: 46px; }
-  .aysh-voice-transcript { right: 14px; bottom: 68px; }
+  .aysh-voice-orb { right: 14px; bottom: 14px; width: 56px; height: 56px; }
+  .aysh-orb-core { width: 42px; height: 42px; }
+  .aysh-voice-transcript { right: 14px; bottom: 78px; }
 }
 
 @media (max-width: 768px) {

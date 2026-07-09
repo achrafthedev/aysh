@@ -206,6 +206,7 @@ function setState(next) {
   state = next;
   updateOrbUI();
   updateTranscriptPreview('');
+  if (next === STATES.THINKING || next === STATES.SPEAKING) setOrbAudioLevel(0);
 }
 
 function clearAutoSleep() {
@@ -402,6 +403,7 @@ function vadTick() {
   analyser.getByteTimeDomainData(vadDataArray);
   const rms = computeRms(vadDataArray);
   const now = Date.now();
+  setOrbAudioLevel(rms);
 
   if (rms > VAD_RMS_THRESHOLD) {
     if (!mediaRecorder) beginChunkRecording();
@@ -456,6 +458,7 @@ function stopMicEngine() {
     mediaStream.getTracks().forEach((t) => t.stop());
     mediaStream = null;
   }
+  setOrbAudioLevel(0);
 }
 
 function updateOrbUI() {
@@ -488,13 +491,21 @@ function buildOrb() {
   orbEl.type = 'button';
   orbEl.className = 'aysh-voice-orb off';
   orbEl.innerHTML =
-    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-    '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>' +
-    '<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>' +
-    '<line x1="12" y1="19" x2="12" y2="23"/>' +
-    '<line x1="8" y1="23" x2="16" y2="23"/>' +
-    '</svg>' +
-    '<span class="aysh-voice-orb-ring"></span>';
+    // HUD rings — segmented, counter-rotating, a nod to Jarvis-style
+    // interfaces without copying them. Purely decorative (aria-hidden).
+    '<span class="aysh-orb-ring aysh-orb-ring-outer" aria-hidden="true"></span>' +
+    '<span class="aysh-orb-ring aysh-orb-ring-inner" aria-hidden="true"></span>' +
+    '<span class="aysh-orb-core">' +
+      '<svg class="aysh-orb-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>' +
+        '<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>' +
+        '<line x1="12" y1="19" x2="12" y2="23"/>' +
+        '<line x1="8" y1="23" x2="16" y2="23"/>' +
+      '</svg>' +
+      // Equalizer bars — animated only while speaking, stand in for real
+      // playback amplitude (browsers don't expose that for speechSynthesis).
+      '<span class="aysh-orb-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>' +
+    '</span>';
   orbEl.addEventListener('click', toggle);
   document.body.appendChild(orbEl);
 
@@ -504,6 +515,15 @@ function buildOrb() {
   document.body.appendChild(transcriptEl);
 
   updateOrbUI();
+}
+
+// Drives the orb's audio-reactive glow — called from vadTick with the live
+// RMS level so the core visibly responds to your actual voice volume while
+// listening, instead of just looping a generic animation.
+function setOrbAudioLevel(level) {
+  if (!orbEl) return;
+  const clamped = Math.max(0, Math.min(1, level / 0.12));
+  orbEl.style.setProperty('--aysh-level', clamped.toFixed(3));
 }
 
 export async function enable() {
