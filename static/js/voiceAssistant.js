@@ -262,7 +262,7 @@ function noteRestart() {
 
 function restartDelay() {
   if (recentRestarts.length >= 6) {
-    console.debug('[Aysh Voice] recognition keeps ending quickly — backing off a few seconds.');
+    console.log('[Aysh Voice] recognition keeps ending quickly — backing off a few seconds.');
     return 4000;
   }
   if (recentRestarts.length >= 3) return 1200;
@@ -276,23 +276,33 @@ function startRecognitionEngine() {
   recognition = new SR();
   recognition.continuous = true;
   recognition.interimResults = true;
-  recognition.lang = '';
+  recognition.lang = navigator.language || 'en-US';
+
+  let sessionStartedAt = Date.now();
 
   recognition.onresult = (event) => {
     let interim = '';
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const res = event.results[i];
       if (res.isFinal) {
+        console.log('[Aysh Voice] heard (final):', JSON.stringify(res[0].transcript));
         handleUtterance(res[0].transcript);
       } else {
         interim += res[0].transcript;
       }
     }
+    if (interim) console.log('[Aysh Voice] hearing (interim):', JSON.stringify(interim));
     updateTranscriptPreview(interim);
+  };
+
+  recognition.onstart = () => {
+    sessionStartedAt = Date.now();
+    console.log('[Aysh Voice] recognition session started');
   };
 
   recognition.onerror = (e) => {
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      console.log('[Aysh Voice] microphone permission denied — turning the assistant off.');
       disable();
       return;
     }
@@ -300,29 +310,37 @@ function startRecognitionEngine() {
     // recognizer — onend fires right after and restarts it. Logged (not
     // just a comment) because "the mic light keeps flickering" is much
     // easier to diagnose with this in the console than by guessing.
-    console.debug('[Aysh Voice] recognition error (routine, will restart):', e.error);
+    console.log('[Aysh Voice] recognition error (routine, will restart):', e.error);
   };
 
   recognition.onend = () => {
+    const lastedMs = Date.now() - sessionStartedAt;
+    console.log('[Aysh Voice] recognition session ended after', lastedMs, 'ms');
     if (!armed) return;
     // Don't fight the push-to-talk recorder for the mic while it's active.
     const sendBtn = document.querySelector('.send-btn');
     const manualRecording = sendBtn && sendBtn.classList.contains('recording');
     if (restartTimer) clearTimeout(restartTimer);
+    const delay = manualRecording ? 1200 : restartDelay();
+    console.log('[Aysh Voice] restarting recognition in', delay, 'ms');
     restartTimer = setTimeout(() => {
       if (!armed) return;
       try {
         recognition.start();
         noteRestart();
-      } catch (e) { /* already running */ }
-    }, manualRecording ? 1200 : restartDelay());
+      } catch (e) {
+        console.log('[Aysh Voice] restart failed:', e.message);
+      }
+    }, delay);
   };
 
   try {
     recognition.start();
     recentRestarts = [];
+    console.log('[Aysh Voice] voice assistant armed, listening for the wake word.');
     return true;
   } catch (e) {
+    console.log('[Aysh Voice] failed to start recognition:', e.message);
     return false;
   }
 }
