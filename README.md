@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/aysh-wordmark.svg" alt="Aysh" width="260">
+  <img src="docs/aysh-wordmark.svg" alt="Aysh" width="280">
 </p>
 
 <p align="center">
@@ -8,24 +8,32 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start">Quick Start</a> ·
-  <a href="#-voice-assistant----say-aysh">Voice Assistant</a> ·
-  <a href="docs/setup.md">Setup Guide</a> ·
-  <a href="CONTRIBUTING.md">Contributing</a> ·
-  <a href="ROADMAP.md">Roadmap</a>
+  <a href="LICENSE"><img alt="License: AGPL-3.0-or-later" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg"></a>
+  <a href="https://github.com/achrafthedev/aysh/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/achrafthedev/aysh/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/pewdiepie-archdaemon/odysseus"><img alt="Fork of Odysseus" src="https://img.shields.io/badge/fork%20of-Odysseus-8b5cf6.svg"></a>
+  <a href="https://github.com/achrafthedev/aysh/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/achrafthedev/aysh?color=ec4899"></a>
 </p>
 
+<p align="center">
+  <a href="#quick-start"><b>Quick Start</b></a> ·
+  <a href="#voice-assistant"><b>Voice Assistant</b></a> ·
+  <a href="#features"><b>Features</b></a> ·
+  <a href="docs/setup.md"><b>Setup Guide</b></a> ·
+  <a href="CONTRIBUTING.md"><b>Contributing</b></a> ·
+  <a href="ROADMAP.md"><b>Roadmap</b></a>
+</p>
+
+<br>
+
+> **Aysh** is a fork of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) — the
+> excellent self-hosted AI workspace originally released by PewDiePie. This fork rebrands the
+> project and adds a hands-free, always-listening voice assistant on top. Everything else —
+> chat, agents, research, documents, email, notes, calendar, Cookbook — is Odysseus's
+> architecture, carried forward under the same AGPL-3.0-or-later license. Full credit and a
+> huge thank-you to the upstream project; see [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md) for
+> the complete attribution.
+
 ---
-
-## About
-
-**Aysh** is a fork of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) — the
-excellent self-hosted AI workspace originally released by PewDiePie. This fork rebrands the
-project and adds a hands-free, always-listening voice assistant on top. Everything else —
-chat, agents, research, documents, email, notes, calendar, Cookbook — is Odysseus's
-architecture, carried forward under the same AGPL-3.0-or-later license. Full credit and a
-huge thank-you to the upstream project; see [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md) for
-the complete attribution.
 
 ## Quick Start
 
@@ -40,7 +48,9 @@ Open `http://localhost:7000` when the containers are healthy. The first admin pa
 
 Native installs, GPU notes, Windows/macOS instructions, HTTPS, and configuration live in the [setup guide](docs/setup.md).
 
-### Linux: launch it from your applications menu
+<details>
+<summary><b>🐧 Linux: launch it from your applications menu instead</b></summary>
+<br>
 
 If you'd rather have Aysh as a proper app icon than a terminal command:
 
@@ -52,17 +62,22 @@ This sets up a native (non-Docker) venv and adds an "Aysh" entry to your applica
 menu with its own icon. The server only starts on demand, the first time you open it
 from the menu — nothing is installed to run at boot or login.
 
+</details>
+
+---
+
+<a id="voice-assistant"></a>
 ## 🎙️ Voice Assistant — say "Aysh"
 
 Aysh can listen for its own name, the way Jarvis listens for "Sir." Turn it on in
 **Settings → AI → Voice Assistant** and a small orb appears in the corner of the window:
 
-- **Say "Aysh"** — it wakes up (a short chime + "Yes?") and listens for what you want.
-- **Just talk** — your next sentence is sent as a chat message automatically, and the
-  reply is read back out loud.
-- **Say "sleep Aysh"** (or stay quiet for ~15 seconds) — it goes back to sleep and stops
-  actively listening for a command, but keeps a low-power ear out for the wake word.
-- **Click the orb** any time to arm/disarm it manually.
+| You do | Aysh does |
+|---|---|
+| Say **"Aysh"** | Wakes up (a short chime + "Yes?") and listens for what you want |
+| Just talk | Sends your sentence as a chat message and reads the reply back out loud |
+| Say **"sleep Aysh"** (or go quiet ~15s) | Goes back to sleep — keeps a low-power ear out for the wake word only |
+| Click the orb | Arms / disarms it manually, any time |
 
 The wake word and sleep phrase are both configurable — rename your assistant, change the
 phrase, whatever you like.
@@ -77,17 +92,21 @@ detection matters to you, that's a great area to contribute (see
 ships (Whisper, Kokoro-82M, OpenAI-compatible endpoints) are unaffected either way and can
 be swapped in once you're past the wake word.
 
+---
+
 ## Features
 
-- **🎙️ Voice Assistant** — say "Aysh" to wake it, talk hands-free, say "sleep Aysh" to stop.
-- **Chat + Agents** — local/API models, tools, MCP, files, shell, skills, and memory.
-- **Cookbook** — hardware-aware model recommendations, downloads, and serving.
-- **Deep Research** — multi-step web research with source reading and report generation.
-- **Compare** — blind side-by-side model testing and synthesis.
-- **Documents** — writing-first editor with AI edits, suggestions, Markdown, HTML, CSV, and syntax highlighting.
-- **Email** — IMAP/SMTP inbox with triage, tags, summaries, reminders, and reply drafts.
-- **Notes, Tasks + Calendar** — reminders, todos, scheduled agent tasks, and CalDAV sync.
-- **Extras** — gallery/image editor, themes, uploads, web search, presets, sessions, and 2FA.
+| | |
+|---|---|
+| 🎙️ **Voice Assistant** | Say "Aysh" to wake it, talk hands-free, say "sleep Aysh" to stop. |
+| 💬 **Chat + Agents** | Local/API models, tools, MCP, files, shell, skills, and memory. |
+| 📖 **Cookbook** | Hardware-aware model recommendations, downloads, and serving. |
+| 🔎 **Deep Research** | Multi-step web research with source reading and report generation. |
+| ⚖️ **Compare** | Blind side-by-side model testing and synthesis. |
+| 📝 **Documents** | Writing-first editor with AI edits, suggestions, Markdown, HTML, CSV, and syntax highlighting. |
+| 📧 **Email** | IMAP/SMTP inbox with triage, tags, summaries, reminders, and reply drafts. |
+| ✅ **Notes, Tasks + Calendar** | Reminders, todos, scheduled agent tasks, and CalDAV sync. |
+| ✨ **Extras** | Gallery/image editor, themes, uploads, web search, presets, sessions, and 2FA. |
 
 ## Demo
 
@@ -106,7 +125,7 @@ Aysh is a self-hosted workspace with powerful local tools. Keep auth enabled, ke
 
 ## License
 
-AGPL-3.0-or-later -- see [LICENSE](LICENSE) and [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md).
+AGPL-3.0-or-later — see [LICENSE](LICENSE) and [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md).
 
 Aysh is a fork of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) and keeps
 its AGPL-3.0-or-later license, as required. If you use or build on Aysh, consider checking
