@@ -1,5 +1,5 @@
 /* ============================================ */
-/* Odysseus UI — Consolidated Stylesheet        */
+/* Aysh UI — Consolidated Stylesheet        */
 /* ============================================ */
 
 
@@ -6066,7 +6066,7 @@ body.bg-pattern-sparkles {
     /* (legacy toolbar-toggle styles removed — now using .vis-* classes) */
 
     /* Demo highlight pulse */
-    .odysseus-highlight {
+    .aysh-highlight {
       outline: 2px solid var(--accent, var(--red)) !important;
       outline-offset: 1px;
       box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, var(--red)) 18%, transparent);
@@ -6194,7 +6194,7 @@ body.bg-pattern-sparkles {
     @media (prefers-reduced-motion: reduce) {
       .th-cursor, .th-modal-group, .th-zone { animation: none !important; }
     }
-    .odysseus-hl-label {
+    .aysh-hl-label {
       position: absolute;
       top: -22px;
       left: 8px;
@@ -23413,7 +23413,7 @@ body.gallery-selecting .gallery-dl-btn,
 
 /* Welcome name — left-to-right wipe with a touch of horizontal stretch.
    Fires on initial render via the .welcome-name rule; restarts on Nobody⇄
-   Odysseus toggle via JS reflow trick. */
+   Aysh toggle via JS reflow trick. */
 .welcome-name {
   transform-origin: left center;
   animation: welcome-name-reveal 0.55s cubic-bezier(0.34, 1.32, 0.55, 1) both;
@@ -32745,7 +32745,7 @@ body.doc-find-active mark.doc-find-mark.current {
 }
 .email-compose-chip .compose-chip-remove:hover { opacity: 1; color: var(--red, #e55); }
 
-.email-odysseus-attach-menu {
+.email-aysh-attach-menu {
   position: fixed;
   z-index: 10050;
   width: 300px;
@@ -32759,7 +32759,7 @@ body.doc-find-active mark.doc-find-mark.current {
   box-shadow: 0 12px 30px rgba(0,0,0,0.28);
   overflow: hidden;
 }
-.email-odysseus-attach-local {
+.email-aysh-attach-local {
   width: 100%;
   height: 30px;
   display: flex;
@@ -32774,17 +32774,17 @@ body.doc-find-active mark.doc-find-mark.current {
   font-size: 11px;
   cursor: pointer;
 }
-.email-odysseus-attach-local:hover {
+.email-aysh-attach-local:hover {
   background: color-mix(in srgb, var(--accent-primary, var(--red)) 16%, transparent);
   border-color: color-mix(in srgb, var(--accent-primary, var(--red)) 55%, var(--border));
 }
-.email-odysseus-attach-tabs {
+.email-aysh-attach-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 5px;
   margin: 7px 0;
 }
-.email-odysseus-attach-tabs button {
+.email-aysh-attach-tabs button {
   height: 26px;
   display: inline-flex;
   align-items: center;
@@ -32799,16 +32799,16 @@ body.doc-find-active mark.doc-find-mark.current {
   font-size: 11px;
   cursor: pointer;
 }
-.email-odysseus-attach-tabs button.active {
+.email-aysh-attach-tabs button.active {
   opacity: 1;
   color: var(--accent-primary, var(--red));
   border-color: color-mix(in srgb, var(--accent-primary, var(--red)) 45%, var(--border));
   background: color-mix(in srgb, var(--accent-primary, var(--red)) 8%, transparent);
 }
-.email-odysseus-attach-tabs button svg {
+.email-aysh-attach-tabs button svg {
   flex-shrink: 0;
 }
-.email-odysseus-attach-search-wrap {
+.email-aysh-attach-search-wrap {
   height: 28px;
   display: flex;
   align-items: center;
@@ -32820,12 +32820,12 @@ body.doc-find-active mark.doc-find-mark.current {
   background: color-mix(in srgb, var(--fg) 3%, transparent);
   color: color-mix(in srgb, var(--fg) 48%, transparent);
 }
-.email-odysseus-attach-search-wrap:focus-within {
+.email-aysh-attach-search-wrap:focus-within {
   border-color: color-mix(in srgb, var(--accent-primary, var(--red)) 45%, var(--border));
   color: var(--accent-primary, var(--red));
   background: color-mix(in srgb, var(--accent-primary, var(--red)) 6%, transparent);
 }
-.email-odysseus-attach-search {
+.email-aysh-attach-search {
   min-width: 0;
   flex: 1;
   border: 0;
@@ -32835,17 +32835,17 @@ body.doc-find-active mark.doc-find-mark.current {
   font: inherit;
   font-size: 11px;
 }
-.email-odysseus-attach-search::placeholder {
+.email-aysh-attach-search::placeholder {
   color: color-mix(in srgb, var(--fg) 38%, transparent);
 }
-.email-odysseus-attach-list {
+.email-aysh-attach-list {
   max-height: 320px;
   overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.email-odysseus-attach-row {
+.email-aysh-attach-row {
   width: 100%;
   min-height: 38px;
   display: flex;
@@ -32860,15 +32860,15 @@ body.doc-find-active mark.doc-find-mark.current {
   font: inherit;
   cursor: pointer;
 }
-.email-odysseus-attach-row:hover {
+.email-aysh-attach-row:hover {
   background: var(--hover-bg, rgba(255,255,255,0.06));
   border-color: var(--border);
 }
-.email-odysseus-attach-row.is-selected {
+.email-aysh-attach-row.is-selected {
   background: color-mix(in srgb, var(--accent-primary, var(--red)) 10%, transparent);
   border-color: color-mix(in srgb, var(--accent-primary, var(--red)) 45%, var(--border));
 }
-.email-odysseus-attach-dot {
+.email-aysh-attach-dot {
   width: 8px;
   height: 8px;
   flex: 0 0 auto;
@@ -32877,13 +32877,13 @@ body.doc-find-active mark.doc-find-mark.current {
   border-radius: 50%;
   background: color-mix(in srgb, var(--fg) 4%, transparent);
 }
-.email-odysseus-attach-row.is-selected .email-odysseus-attach-dot {
+.email-aysh-attach-row.is-selected .email-aysh-attach-dot {
   border-color: var(--accent-primary, var(--red));
   background: var(--accent-primary, var(--red));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary, var(--red)) 18%, transparent);
 }
-.email-odysseus-attach-icon,
-.email-odysseus-attach-thumb {
+.email-aysh-attach-icon,
+.email-aysh-attach-thumb {
   width: 28px;
   height: 28px;
   flex: 0 0 auto;
@@ -32894,42 +32894,42 @@ body.doc-find-active mark.doc-find-mark.current {
   background: color-mix(in srgb, var(--fg) 7%, transparent);
   overflow: hidden;
 }
-.email-odysseus-attach-thumb img {
+.email-aysh-attach-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.email-odysseus-attach-main {
+.email-aysh-attach-main {
   min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.email-odysseus-attach-title,
-.email-odysseus-attach-meta {
+.email-aysh-attach-title,
+.email-aysh-attach-meta {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.email-odysseus-attach-title {
+.email-aysh-attach-title {
   font-size: 11px;
   line-height: 1.2;
 }
-.email-odysseus-attach-meta {
+.email-aysh-attach-meta {
   font-size: 10px;
   line-height: 1.15;
   opacity: 0.52;
 }
-.email-odysseus-attach-empty {
+.email-aysh-attach-empty {
   padding: 14px 8px;
   color: var(--muted, #888);
   font-size: 11px;
   text-align: center;
 }
-.email-odysseus-attach-actions {
+.email-aysh-attach-actions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -32940,13 +32940,13 @@ body.doc-find-active mark.doc-find-mark.current {
   position: sticky;
   bottom: 0;
 }
-.email-odysseus-attach-count {
+.email-aysh-attach-count {
   flex: 1;
   min-width: 0;
   color: var(--muted, #888);
   font-size: 11px;
 }
-.email-odysseus-attach-selected {
+.email-aysh-attach-selected {
   height: 28px;
   min-width: 72px;
   padding: 0 12px;
@@ -32962,19 +32962,19 @@ body.doc-find-active mark.doc-find-mark.current {
   font-size: 11px;
   cursor: pointer;
 }
-.email-odysseus-attach-selected svg {
+.email-aysh-attach-selected svg {
   flex-shrink: 0;
 }
-.email-odysseus-attach-selected:disabled {
+.email-aysh-attach-selected:disabled {
   opacity: 0.45;
   cursor: default;
 }
-.email-odysseus-attach-selected.is-loading {
+.email-aysh-attach-selected.is-loading {
   opacity: 0.72;
   pointer-events: none;
 }
 @media (max-width: 768px) {
-  .email-odysseus-attach-menu {
+  .email-aysh-attach-menu {
     left: 8px !important;
     right: 8px;
     bottom: 8px;
@@ -32982,7 +32982,7 @@ body.doc-find-active mark.doc-find-mark.current {
     width: auto;
     max-height: 58vh;
   }
-  .email-odysseus-attach-list {
+  .email-aysh-attach-list {
     max-height: calc(58vh - 88px);
   }
 }
@@ -40444,6 +40444,85 @@ body.theme-frosted .modal {
    four render ~88px columns. Each column is a full scrolling chat (code blocks,
    tool output, vote footer), so the text is unreadably over-wrapped and clipped.
    On phones, stack the panes into a single scrollable column instead. */
+/* ── Aysh Voice Assistant — floating wake-word orb ── */
+.aysh-voice-orb {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.35);
+  z-index: 8500;
+  transition: transform .15s ease, box-shadow .3s ease, opacity .3s ease;
+}
+.aysh-voice-orb:hover { transform: scale(1.06); }
+.aysh-voice-orb.off {
+  background: color-mix(in srgb, var(--panel) 85%, #888);
+  color: color-mix(in srgb, var(--fg) 55%, transparent);
+  box-shadow: none;
+  opacity: 0.55;
+}
+.aysh-voice-orb.off:hover { opacity: 0.85; }
+.aysh-voice-orb-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0;
+}
+.aysh-voice-orb.asleep .aysh-voice-orb-ring {
+  opacity: 0.55;
+  animation: aysh-orb-pulse 2.4s ease-out infinite;
+}
+.aysh-voice-orb.awake { background: linear-gradient(135deg, #22c55e, #06b6d4); box-shadow: 0 4px 20px rgba(34, 197, 94, 0.45); }
+.aysh-voice-orb.awake .aysh-voice-orb-ring { opacity: 0.6; animation: aysh-orb-pulse 1.1s ease-out infinite; }
+.aysh-voice-orb.thinking { background: linear-gradient(135deg, #f59e0b, #ec4899); }
+.aysh-voice-orb.thinking svg { animation: aysh-orb-spin 1s linear infinite; }
+.aysh-voice-orb.speaking { background: linear-gradient(135deg, #f97316, #ef4444); box-shadow: 0 4px 20px rgba(249, 115, 22, 0.5); }
+.aysh-voice-orb.speaking .aysh-voice-orb-ring { opacity: 0.6; animation: aysh-orb-pulse .7s ease-out infinite; }
+
+@keyframes aysh-orb-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+@keyframes aysh-orb-spin {
+  to { transform: rotate(360deg); }
+}
+
+.aysh-voice-transcript {
+  position: fixed;
+  right: 20px;
+  bottom: 80px;
+  max-width: min(280px, calc(100vw - 40px));
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--fg);
+  border: 1px solid color-mix(in srgb, var(--accent, #8b5cf6) 30%, transparent);
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .2s ease, transform .2s ease;
+  z-index: 8500;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+.aysh-voice-transcript.visible { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 640px) {
+  .aysh-voice-orb { right: 14px; bottom: 14px; width: 46px; height: 46px; }
+  .aysh-voice-transcript { right: 14px; bottom: 68px; }
+}
+
 @media (max-width: 768px) {
   .compare-grid[data-cols] { grid-template-columns: 1fr !important; overflow-y: auto; }
   .compare-pane { min-height: 60dvh; }

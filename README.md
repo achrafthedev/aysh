@@ -1,45 +1,73 @@
 <p align="center">
-  <img src="docs/odysseus-wordmark.png" alt="Odysseus" width="238">
+  <img src="docs/aysh-wordmark.svg" alt="Aysh" width="260">
 </p>
 
 <p align="center">
-  A self-hosted AI workspace for chat, agents, research, documents, email, notes, calendar, and local model workflows.
+  A self-hosted AI workspace for chat, agents, research, documents, email, notes, and calendar —
+  with a Jarvis-style wake word so you can just <em>talk</em> to it.
 </p>
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> ·
+  <a href="#-voice-assistant----say-aysh">Voice Assistant</a> ·
   <a href="docs/setup.md">Setup Guide</a> ·
   <a href="CONTRIBUTING.md">Contributing</a> ·
   <a href="ROADMAP.md">Roadmap</a>
 </p>
 
-<p align="center">
-  <a href="https://repology.org/project/odysseus-ai/versions"><img src="https://repology.org/badge/vertical-allrepos/odysseus-ai.svg" alt="Packaging status"></a>
-</p>
-
-<p align="center">
-  <img src="docs/odysseus-browser.jpg" alt="Odysseus interface">
-</p>
-
 ---
+
+## About
+
+**Aysh** is a fork of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) — the
+excellent self-hosted AI workspace originally released by PewDiePie. This fork rebrands the
+project and adds a hands-free, always-listening voice assistant on top. Everything else —
+chat, agents, research, documents, email, notes, calendar, Cookbook — is Odysseus's
+architecture, carried forward under the same AGPL-3.0-or-later license. Full credit and a
+huge thank-you to the upstream project; see [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md) for
+the complete attribution.
 
 ## Quick Start
 
-> `dev` is the default branch and gets the newest changes first. Use [`main`](https://github.com/pewdiepie-archdaemon/odysseus/tree/main) if you want the more curated branch.
-
 ```bash
-git clone https://github.com/pewdiepie-archdaemon/odysseus.git
-cd odysseus
+git clone https://github.com/achrafthedev/aysh.git
+cd aysh
 cp .env.example .env
 docker compose up -d --build
 ```
 
-Open `http://localhost:7000` when the containers are healthy. The first admin password is printed in `docker compose logs odysseus`.
+Open `http://localhost:7000` when the containers are healthy. The first admin password is printed in `docker compose logs aysh`.
 
 Native installs, GPU notes, Windows/macOS instructions, HTTPS, and configuration live in the [setup guide](docs/setup.md).
 
+## 🎙️ Voice Assistant — say "Aysh"
+
+Aysh can listen for its own name, the way Jarvis listens for "Sir." Turn it on in
+**Settings → AI → Voice Assistant** and a small orb appears in the corner of the window:
+
+- **Say "Aysh"** — it wakes up (a short chime + "Yes?") and listens for what you want.
+- **Just talk** — your next sentence is sent as a chat message automatically, and the
+  reply is read back out loud.
+- **Say "sleep Aysh"** (or stay quiet for ~15 seconds) — it goes back to sleep and stops
+  actively listening for a command, but keeps a low-power ear out for the wake word.
+- **Click the orb** any time to arm/disarm it manually.
+
+The wake word and sleep phrase are both configurable — rename your assistant, change the
+phrase, whatever you like.
+
+This runs entirely in your browser tab via the Web Speech API (no extra service, no extra
+dependency) and reuses Aysh's existing Speech-to-Text / Text-to-Speech settings to talk
+back. It needs a Chromium-based browser (Chrome/Edge/Brave) and microphone access, and —
+like the browser STT/TTS options it's built on — routes audio through your browser's
+built-in speech engine, which is not purely local. If full offline/local wake-word
+detection matters to you, that's a great area to contribute (see
+[CONTRIBUTING.md](CONTRIBUTING.md)); the local/endpoint STT and TTS providers Aysh already
+ships (Whisper, Kokoro-82M, OpenAI-compatible endpoints) are unaffected either way and can
+be swapped in once you're past the wake word.
+
 ## Features
 
+- **🎙️ Voice Assistant** — say "Aysh" to wake it, talk hands-free, say "sleep Aysh" to stop.
 - **Chat + Agents** — local/API models, tools, MCP, files, shell, skills, and memory.
 - **Cookbook** — hardware-aware model recommendations, downloads, and serving.
 - **Deep Research** — multi-step web research with source reading and report generation.
@@ -55,22 +83,19 @@ A full hover-to-play tour lives on the landing page: [`docs/index.html`](docs/in
 
 ## Contributing
 
-Help is welcome. The best entry points are fresh-install testing, provider setup bugs, mobile/editor polish, docs, and small focused refactors. See [CONTRIBUTING.md](CONTRIBUTING.md) and [ROADMAP.md](ROADMAP.md).
+Help is welcome. Fresh-install testing, provider setup bugs, mobile/editor polish, docs,
+small focused refactors — and especially a local/offline wake-word engine to replace the
+browser-based one — are all great entry points. See [CONTRIBUTING.md](CONTRIBUTING.md) and
+[ROADMAP.md](ROADMAP.md).
 
 ## Security
 
-Odysseus is a self-hosted workspace with powerful local tools. Keep auth enabled, keep private data out of Git, and do not expose raw model/service ports publicly. Deployment details are in the [setup guide](docs/setup.md#security-notes).
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=pewdiepie-archdaemon%2Fodysseus&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=pewdiepie-archdaemon/odysseus&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=pewdiepie-archdaemon/odysseus&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=pewdiepie-archdaemon/odysseus&type=date&legend=top-left" />
- </picture>
-</a>
+Aysh is a self-hosted workspace with powerful local tools. Keep auth enabled, keep private data out of Git, and do not expose raw model/service ports publicly. Deployment details are in the [setup guide](docs/setup.md#security-notes).
 
 ## License
 
 AGPL-3.0-or-later -- see [LICENSE](LICENSE) and [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md).
+
+Aysh is a fork of [Odysseus](https://github.com/pewdiepie-archdaemon/odysseus) and keeps
+its AGPL-3.0-or-later license, as required. If you use or build on Aysh, consider checking
+out and starring the original project too.

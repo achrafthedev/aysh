@@ -1,22 +1,22 @@
 {
-  "name": "odysseus",
+  "name": "aysh",
   "version": "0.1.1",
-  "description": "Connect Codex to a scoped Odysseus instance.",
+  "description": "Connect Codex to a scoped Aysh instance.",
   "author": {
-    "name": "Odysseus"
+    "name": "Aysh"
   },
   "skills": "./skills/",
   "interface": {
-    "displayName": "Odysseus",
-    "shortDescription": "Use scoped Odysseus tools from Codex.",
-    "longDescription": "Connects Codex terminal sessions to Odysseus through user-controlled scoped API tokens. Codex must use /api/codex/* endpoints so Odysseus Settings can enforce tool access.",
-    "developerName": "Odysseus",
+    "displayName": "Aysh",
+    "shortDescription": "Use scoped Aysh tools from Codex.",
+    "longDescription": "Connects Codex terminal sessions to Aysh through user-controlled scoped API tokens. Codex must use /api/codex/* endpoints so Aysh Settings can enforce tool access.",
+    "developerName": "Aysh",
     "category": "Productivity",
     "capabilities": [
       "todos",
       "email",
       "scoped-api"
     ],
-    "defaultPrompt": "Use Odysseus only through configured scoped access. Check capabilities before reading or writing data."
+    "defaultPrompt": "Use Aysh only through configured scoped access. Check capabilities before reading or writing data."
   }
 }

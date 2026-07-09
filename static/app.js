@@ -1,5 +1,5 @@
 // ============================================
-// Odysseus UI — Main Application Orchestrator
+// Aysh UI — Main Application Orchestrator
 // ES6 module — entry point, no exports (wires all modules together)
 // ============================================
 import Storage from './js/storage.js';
@@ -20,6 +20,7 @@ import chatRenderer from './js/chatRenderer.js';
 import sessionModule from './js/sessions.js';
 import memoryModule from './js/memory.js';
 import voiceRecorderModule from './js/voiceRecorder.js';
+import voiceAssistantModule from './js/voiceAssistant.js';
 import censorModule from './js/censor.js';
 import galleryModule from './js/gallery.js';
 import tasksModule from './js/tasks.js?v=20260630tasksactivity';
@@ -65,8 +66,8 @@ function _submitChatFormDirect(form) {
 
 function _isForegroundChatBusy() {
   const sendBtn = document.querySelector('.send-btn');
-  return !!window.__odysseusChatBusy
-    || Date.now() < (window.__odysseusChatBusyUntil || 0)
+  return !!window.__ayshChatBusy
+    || Date.now() < (window.__ayshChatBusyUntil || 0)
     || !!document.querySelector('.send-btn[data-mode="streaming"], .send-btn.send-pending')
     || (sendBtn && (sendBtn.title || '').toLowerCase().includes('stop'));
 }
@@ -105,7 +106,7 @@ function _submitMobileQueuedInput(input) {
   if (chatModule && chatModule.queueStreamingComposerRequest && chatModule.queueStreamingComposerRequest()) {
     return true;
   }
-  window.__odysseusQueueStreamingSubmit = now;
+  window.__ayshQueueStreamingSubmit = now;
   const form = document.getElementById('chat-form');
   _submitChatFormDirect(form);
   return true;
@@ -209,7 +210,7 @@ async function _refreshDefaultChat() {
     const d = await (await fetch('/api/default-chat')).json();
     if (d && d.endpoint_url && d.model) {
       _defaultChat = d;
-      try { window.__odysseusDefaultChat = d; } catch (_) {}
+      try { window.__ayshDefaultChat = d; } catch (_) {}
       return d;
     }
   } catch (_) {}
@@ -529,7 +530,7 @@ function initializeEventListeners() {
       e.stopPropagation();
       exportMenu.classList.remove('open');
       const meta = sessionModule.getSessions().find(s => s.id === sessionModule.getCurrentSessionId());
-      const sessionName = meta ? meta.name : 'Odysseus Chat';
+      const sessionName = meta ? meta.name : 'Aysh Chat';
       const originalTitle = document.title;
       document.title = sessionName;
       const chatHistory = document.getElementById('chat-history');
@@ -1230,7 +1231,7 @@ function initializeEventListeners() {
   // click handler in emailInbox, sessionModule's loaded session list) are
   // still being wired up further down in this same function. Stash the
   // opener so it runs from sessionModule.loadSessions().finally() below.
-  if (_opener) window._odysseusRouteOpener = _opener;
+  if (_opener) window._ayshRouteOpener = _opener;
 
   // Archive browser tool button
   const toolLibraryBtn = el('tool-library-btn');
@@ -1478,7 +1479,7 @@ function initializeEventListeners() {
     modelSortDropdown.querySelectorAll('.sort-option').forEach(opt => {
       opt.addEventListener('click', () => {
         const mode = opt.dataset.sort;
-        Storage.set('odysseus-model-sort', mode);
+        Storage.set('aysh-model-sort', mode);
         if (modelsModule) modelsModule.refreshModels();
         modelSortDropdown.style.display = 'none';
         uiModule.showToast('Models sorted: ' + opt.textContent.trim().toLowerCase());
@@ -1795,7 +1796,7 @@ function initializeEventListeners() {
       // Delay tool glow-up for a staggered effect
       setTimeout(() => applyModeToToggles(mode), 500);
     }
-    window.__odysseusSetChatMode = setMode;
+    window.__ayshSetChatMode = setMode;
     agentBtn.addEventListener('click', () => {
       // Agent mode turns off research if active
       const resChk = el('research-toggle');
@@ -1807,7 +1808,7 @@ function initializeEventListeners() {
   })();
 
   // ── Tool splash explainer messages (shown first 2 times per tool) ──
-  const SPLASH_COUNT_KEY = 'odysseus-tool-splash-counts';
+  const SPLASH_COUNT_KEY = 'aysh-tool-splash-counts';
   const SPLASH_MAX = 2;
   const _toolSplashes = {
     web: { role: 'Web Search', text: 'Searches the web for relevant information to include in the response. Results are fetched and summarized before the AI answers.' },
@@ -2315,7 +2316,7 @@ function initializeEventListeners() {
       // Keep a prompt inside the composer even when the picker crowds the row.
       // A blank placeholder makes the mobile/compact empty state feel broken.
       if (textarea) {
-        textarea.setAttribute('placeholder', w < PLACEHOLDER_COMPACT_WIDTH ? 'Message...' : 'Message Odysseus...');
+        textarea.setAttribute('placeholder', w < PLACEHOLDER_COMPACT_WIDTH ? 'Message...' : 'Message Aysh...');
       }
       // Hide entire bottom toolbar (tools, mode toggle) — only send button remains
       if (inputBottom) {
@@ -2509,8 +2510,8 @@ function initializeEventListeners() {
         const _offIds = ['web-toggle', 'bash-toggle', 'research-toggle'];
         _offIds.forEach(id => { const c = el(id); if (c) c.checked = false; });
         ['web-toggle-btn', 'bash-toggle-btn'].forEach(id => { const b = el(id); if (b) b.classList.remove('active'); });
-        if (typeof window.__odysseusSetChatMode === 'function') {
-          window.__odysseusSetChatMode('chat');
+        if (typeof window.__ayshSetChatMode === 'function') {
+          window.__ayshSetChatMode('chat');
         } else {
           const _ab = el('mode-agent-btn'), _cb = el('mode-chat-btn');
           if (_ab) {
@@ -2558,8 +2559,8 @@ function initializeEventListeners() {
           if (_ts[k] === false) delete _ts[k];
         });
         Storage.setJSON(Storage.KEYS.TOGGLES, _ts);
-        if (typeof window.__odysseusSetChatMode === 'function') {
-          window.__odysseusSetChatMode(_restoreMode === 'chat' ? 'chat' : 'agent');
+        if (typeof window.__ayshSetChatMode === 'function') {
+          window.__ayshSetChatMode(_restoreMode === 'chat' ? 'chat' : 'agent');
         }
         // Reapply the current mode's real defaults to the visible toggles
         const _curMode = (Storage.getJSON(Storage.KEYS.TOGGLES, {}) || {}).mode || 'chat';
@@ -2598,7 +2599,7 @@ function initializeEventListeners() {
   }
 
   // ── UI Visibility (Customize UI modal) ──
-  const UI_VIS_KEY = 'odysseus-ui-visibility';
+  const UI_VIS_KEY = 'aysh-ui-visibility';
 
   // Selector map: key → CSS selector(s) for targets
   const UI_VIS_MAP = {
@@ -2879,7 +2880,7 @@ function initializeEventListeners() {
 
   // Migrate old toolbar visibility key if present
   (function migrateOldToolbarVis() {
-    const OLD_KEY = 'odysseus-toolbar-visibility';
+    const OLD_KEY = 'aysh-toolbar-visibility';
     try {
       const old = Storage.getJSON(OLD_KEY, null);
       if (old && typeof old === 'object') {
@@ -3329,7 +3330,7 @@ function initializeEventListeners() {
   const textarea = el('message');
   if (textarea) {
     _syncMobileEnterKeyHint(textarea);
-    window.addEventListener('odysseus:chat-busy-change', () => _syncMobileEnterKeyHint(textarea));
+    window.addEventListener('aysh:chat-busy-change', () => _syncMobileEnterKeyHint(textarea));
     uiModule.autoResize(textarea);
     let previousTextareaValue = textarea.value || '';
     textarea.addEventListener('beforeinput', (e) => {
@@ -3376,7 +3377,7 @@ function initializeEventListeners() {
             if (chatModule && chatModule.queueStreamingComposerRequest && chatModule.queueStreamingComposerRequest()) {
               return;
             }
-            window.__odysseusQueueStreamingSubmit = Date.now();
+            window.__ayshQueueStreamingSubmit = Date.now();
           }
           _submitChatFormDirect(form);
         }
@@ -3575,12 +3576,12 @@ function initializeEventListeners() {
 // ============================================
 // INITIALIZATION ON PAGE LOAD
 // ============================================
-function startOdysseusApp() {
-  if (window.__odysseusAppStarted) return;
-  window.__odysseusAppStarted = true;
+function startAyshApp() {
+  if (window.__ayshAppStarted) return;
+  window.__ayshAppStarted = true;
   const _bumpChatPriority = (ms = 10000) => {
     try {
-      window.__odysseusChatBusyUntil = Math.max(window.__odysseusChatBusyUntil || 0, Date.now() + ms);
+      window.__ayshChatBusyUntil = Math.max(window.__ayshChatBusyUntil || 0, Date.now() + ms);
     } catch (_) {}
   };
   _bumpChatPriority(10000);
@@ -3633,7 +3634,7 @@ function startOdysseusApp() {
     documentModule.init(API_BASE);
     // Restore document panel if it was open before refresh
     const _curSession = sessionModule && sessionModule.getCurrentSessionId();
-    if (_curSession && localStorage.getItem('odysseus-doc-open-' + _curSession) === '1') {
+    if (_curSession && localStorage.getItem('aysh-doc-open-' + _curSession) === '1') {
       documentModule.loadSessionDocs(_curSession);
     }
   }  
@@ -3803,7 +3804,7 @@ function startOdysseusApp() {
   const _newChatIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
 
   // Expose icons globally so chat.js updateSubmitButton can use them
-  window._odysseusBtnIcons = { send: _sendIcon, mic: _micIcon, stop: _stopIcon, newChat: _newChatIcon };
+  window._ayshBtnIcons = { send: _sendIcon, mic: _micIcon, stop: _stopIcon, newChat: _newChatIcon };
 
   function _isSttEnabled() {
     return voiceRecorderModule._sttProvider && voiceRecorderModule._sttProvider !== 'disabled';
@@ -3934,7 +3935,7 @@ function startOdysseusApp() {
       const hasFiles = _hasAttachments();
 
       if (sendBtn.dataset.mode === 'streaming') {
-        if (hasText) window.__odysseusQueueStreamingSubmit = Date.now();
+        if (hasText) window.__ayshQueueStreamingSubmit = Date.now();
         handleSubmit(e);
         return;
       }
@@ -3996,7 +3997,7 @@ function startOdysseusApp() {
           if (chatModule && chatModule.queueStreamingComposerRequest && chatModule.queueStreamingComposerRequest()) {
             return;
           }
-          window.__odysseusQueueStreamingSubmit = Date.now();
+          window.__ayshQueueStreamingSubmit = Date.now();
         }
         _submitChatFormDirect(document.getElementById('chat-form'));
       }
@@ -4205,9 +4206,9 @@ function startOdysseusApp() {
         if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 300); }
         // Fire any URL route opener now that sessions + module wiring are
         // ready. Deferred from up top of init for exactly this reason.
-        if (window._odysseusRouteOpener) {
-          try { window._odysseusRouteOpener(); } catch (_) {}
-          window._odysseusRouteOpener = null;
+        if (window._ayshRouteOpener) {
+          try { window._ayshRouteOpener(); } catch (_) {}
+          window._ayshRouteOpener = null;
         }
       });
   } else {
@@ -4217,8 +4218,8 @@ function startOdysseusApp() {
   const runNonCriticalStartup = (fn, delay = 4000) => {
     let tries = 0;
     const run = () => {
-      const busy = !!window.__odysseusChatBusy
-        || Date.now() < (window.__odysseusChatBusyUntil || 0)
+      const busy = !!window.__ayshChatBusy
+        || Date.now() < (window.__ayshChatBusyUntil || 0)
         || !!document.querySelector('.send-btn[data-mode="streaming"], .send-btn.send-pending');
       if (busy && tries < 12) {
         tries += 1;
@@ -4251,6 +4252,7 @@ function startOdysseusApp() {
   
   // Ensure proper initial state
   voiceRecorderModule.init();
+  voiceAssistantModule.init();
   if (censorModule) censorModule.init();
 
   // Auto-focus message input on load
@@ -4383,7 +4385,7 @@ function startOdysseusApp() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startOdysseusApp, { once: true });
+  document.addEventListener('DOMContentLoaded', startAyshApp, { once: true });
 } else {
-  startOdysseusApp();
+  startAyshApp();
 }

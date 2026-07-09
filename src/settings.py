@@ -56,6 +56,13 @@ DEFAULT_SETTINGS = {
     "stt_provider": "disabled",
     "stt_model": "base",
     "stt_language": "",
+    # Jarvis-style always-listening wake word assistant. Runs entirely in the
+    # browser (Web Speech API for ambient wake-word detection, existing
+    # TTS/STT pipeline for the reply), so it needs no extra backend service.
+    # Disabled by default since it requests an always-on microphone.
+    "voice_assistant_enabled": False,
+    "voice_assistant_wake_word": "aysh",
+    "voice_assistant_sleep_phrase": "sleep aysh",
     "search_provider": "searxng",
     # Default fallback chain — when the primary provider fails or
     # rate-limits, we try DuckDuckGo next. Free, no API key required, so
