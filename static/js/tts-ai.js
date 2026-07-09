@@ -1,6 +1,18 @@
 // static/js/tts-ai.js
 // AI Text-to-Speech Module — supports server TTS and browser Web Speech API
 
+// "Aysh" isn't a real word, so the browser's built-in speechSynthesis (a
+// rule-based grapheme-to-phoneme engine, not a real language model — this
+// is what mis-transcribed it as the letter "H" during wake-word testing
+// too) tends to mispronounce it. "H" ("aitch", /eɪtʃ/) is a near-homophone
+// of "Aysh" (/eɪʃ/), so substituting it before speaking gets a much closer
+// pronunciation. Only affects the local browser voice — server-side TTS
+// (Kokoro, OpenAI-compatible endpoints) are real neural models and handle
+// "Aysh" fine as-is.
+function forBrowserPronunciation(text) {
+    return (text || '').replace(/\bAysh\b/gi, 'H');
+}
+
 class AITTSManager {
     constructor() {
         this.currentAudio = null;
@@ -199,7 +211,7 @@ class AITTSManager {
 
     _playBrowser(plainText) {
         return new Promise((resolve, reject) => {
-            const utterance = new SpeechSynthesisUtterance(plainText);
+            const utterance = new SpeechSynthesisUtterance(forBrowserPronunciation(plainText));
             const voice = this._findBrowserVoice();
             if (voice) utterance.voice = voice;
             utterance.rate = this.playbackSpeed;

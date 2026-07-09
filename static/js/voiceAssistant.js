@@ -163,7 +163,10 @@ function speak(text, onDone) {
       .catch((e) => { console.log('[Aysh Voice] TTS playback failed:', e && e.message); })
       .then(done, done);
   } else if ('speechSynthesis' in window) {
-    const u = new SpeechSynthesisUtterance(text);
+    // "Aysh" isn't a real word, so the browser's rule-based speechSynthesis
+    // tends to mispronounce it — "H" ("aitch") is a near-homophone and
+    // reads correctly instead (same fix as tts-ai.js's _playBrowser).
+    const u = new SpeechSynthesisUtterance(text.replace(/\bAysh\b/gi, 'H'));
     u.onend = done;
     u.onerror = (e) => {
       console.log('[Aysh Voice] speechSynthesis error:', e.error);
