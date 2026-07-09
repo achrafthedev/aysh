@@ -1132,8 +1132,28 @@ async function initVoiceAssistantSettings() {
   var enabledToggle = el('set-voiceAssistantEnabledToggle');
   var wakeWordInput = el('set-voiceAssistantWakeWord');
   var sleepPhraseInput = el('set-voiceAssistantSleepPhrase');
+  var sttProviderSelect = el('set-voiceAssistantSttProvider');
   var msg = el('set-voiceAssistantMsg');
   if (!enabledToggle) return;
+
+  // The STT provider picker was pulled out of the main AI Defaults tab, so
+  // this card carries its own — listening needs a real server-side STT
+  // provider (Local Whisper or an API endpoint); browser speech recognition
+  // depends on a Google cloud key that only some browsers ship (Chrome/Edge
+  // — not Brave or plain Chromium), so it isn't offered here.
+  if (sttProviderSelect) {
+    try {
+      var epRes = await fetch('/api/model-endpoints', { credentials: 'same-origin' });
+      var endpoints = await epRes.json();
+      endpoints.forEach(function(ep) {
+        if (!ep.is_enabled) return;
+        var opt = document.createElement('option');
+        opt.value = 'endpoint:' + ep.id;
+        opt.textContent = ep.name + ' (API)';
+        sttProviderSelect.appendChild(opt);
+      });
+    } catch (e) { console.warn('Failed to load endpoints for voice assistant STT', e); }
+  }
 
   try {
     var settingsRes = await fetch('/api/auth/settings', { credentials: 'same-origin' });
@@ -1141,31 +1161,49 @@ async function initVoiceAssistantSettings() {
     enabledToggle.checked = !!settings.voice_assistant_enabled;
     wakeWordInput.value = settings.voice_assistant_wake_word || 'aysh';
     sleepPhraseInput.value = settings.voice_assistant_sleep_phrase || 'sleep aysh';
+    if (sttProviderSelect) {
+      var savedStt = settings.stt_provider || 'disabled';
+      // 'browser' isn't a valid choice for this picker (see note above) —
+      // fall back to showing "disabled" rather than an option that isn't there.
+      if (savedStt !== 'browser' && [].slice.call(sttProviderSelect.options).some(function(o) { return o.value === savedStt; })) {
+        sttProviderSelect.value = savedStt;
+      }
+    }
   } catch (e) { console.warn('Failed to load voice assistant settings', e); }
 
   async function saveVoiceAssistant() {
     var wakeWord = wakeWordInput.value.trim() || 'aysh';
     var sleepPhrase = sleepPhraseInput.value.trim() || 'sleep ' + wakeWord;
     var enabled = enabledToggle.checked;
+    var sttChoice = sttProviderSelect ? sttProviderSelect.value : 'disabled';
     var body = {
       voice_assistant_enabled: enabled,
       voice_assistant_wake_word: wakeWord,
       voice_assistant_sleep_phrase: sleepPhrase,
+      stt_provider: sttChoice,
+      stt_enabled: sttChoice !== 'disabled',
     };
-    // Enabling it for the first time is only useful if something can hear
-    // and talk back — auto-provision the zero-config browser STT/TTS
-    // providers rather than silently doing nothing when both are "disabled".
+    // The reply needs a voice — auto-provision browser TTS (works fine
+    // everywhere, it's just the OS/browser's built-in speechSynthesis)
+    // rather than silently doing nothing when it's "disabled".
     if (enabled) {
       try {
         var current = await (await fetch('/api/auth/settings', { credentials: 'same-origin' })).json();
         if (!current.tts_provider || current.tts_provider === 'disabled') { body.tts_enabled = true; body.tts_provider = 'browser'; }
-        if (!current.stt_provider || current.stt_provider === 'disabled') { body.stt_enabled = true; body.stt_provider = 'browser'; }
       } catch (e) { /* best-effort */ }
     }
     try {
       await fetch('/api/auth/settings', { method: 'POST', credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (msg) { msg.textContent = 'Saved'; msg.style.color = 'var(--fg)'; setTimeout(() => { msg.textContent = ''; }, 2000); }
+      if (msg) {
+        if (enabled && sttChoice === 'disabled') {
+          msg.textContent = 'Saved — pick "Listen with" above, or it has nothing to listen with.';
+          msg.style.color = 'var(--red, #e55)';
+        } else {
+          msg.textContent = 'Saved'; msg.style.color = 'var(--fg)';
+          setTimeout(() => { msg.textContent = ''; }, 2000);
+        }
+      }
       if (window.aiTTSManager) window.aiTTSManager.checkAvailability();
       if (window.voiceAssistantModule) {
         await window.voiceAssistantModule.refreshSettings();
@@ -1178,6 +1216,7 @@ async function initVoiceAssistantSettings() {
   enabledToggle.addEventListener('change', saveVoiceAssistant);
   wakeWordInput.addEventListener('change', saveVoiceAssistant);
   sleepPhraseInput.addEventListener('change', saveVoiceAssistant);
+  if (sttProviderSelect) sttProviderSelect.addEventListener('change', saveVoiceAssistant);
 }
 
 /* ═══════════════════════════════════════════

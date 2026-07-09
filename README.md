@@ -82,15 +82,15 @@ Aysh can listen for its own name, the way Jarvis listens for "Sir." Turn it on i
 The wake word and sleep phrase are both configurable — rename your assistant, change the
 phrase, whatever you like.
 
-This runs entirely in your browser tab via the Web Speech API (no extra service, no extra
-dependency) and reuses Aysh's existing Speech-to-Text / Text-to-Speech settings to talk
-back. It needs a Chromium-based browser (Chrome/Edge/Brave) and microphone access, and —
-like the browser STT/TTS options it's built on — routes audio through your browser's
-built-in speech engine, which is not purely local. If full offline/local wake-word
-detection matters to you, that's a great area to contribute (see
-[CONTRIBUTING.md](CONTRIBUTING.md)); the local/endpoint STT and TTS providers Aysh already
-ships (Whisper, Kokoro-82M, OpenAI-compatible endpoints) are unaffected either way and can
-be swapped in once you're past the wake word.
+It keeps the microphone open in your browser tab and transcribes through **Aysh's own
+Speech-to-Text provider** — Local (Whisper) or an API endpoint, picked right there in the
+Voice Assistant settings card — instead of a browser vendor's cloud speech service. That
+also means it works the same in any browser with microphone access, not just Chrome/Edge:
+browser-native speech recognition (the obvious first approach) depends on a Google cloud
+key that only some Chromium builds ship, so it silently fails on Brave and plain Chromium.
+Pick **Local (Whisper)** for a fully offline setup, or an API endpoint if you'd rather not
+run Whisper locally. Replies are read back with your Text-to-Speech setting, same as
+everywhere else in Aysh.
 
 ---
 

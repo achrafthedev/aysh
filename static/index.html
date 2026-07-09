@@ -1586,7 +1586,7 @@
           </div>
           <div class="admin-card">
             <h2 style="display:flex;align-items:center;gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:1px;opacity:0.6;flex-shrink:0"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>Voice Assistant<span style="flex:1"></span><label class="admin-switch" title="Always-listening wake word, like Jarvis"><input type="checkbox" id="set-voiceAssistantEnabledToggle"><span class="admin-slider"></span></label></h2>
-            <div class="admin-toggle-sub" style="margin-bottom:8px">Say the wake word to start talking to Aysh hands-free, and the sleep phrase to put it back to sleep. Runs in this browser tab via the Web Speech API — requires Chrome/Edge and microphone access. Uses your Text-to-Speech / Speech-to-Text settings above to talk back.</div>
+            <div class="admin-toggle-sub" style="margin-bottom:8px">Say the wake word to start talking to Aysh hands-free, and the sleep phrase to put it back to sleep. Keeps the microphone open in this tab and transcribes locally through Aysh's own Speech-to-Text provider (not a browser cloud service), so it works the same in any browser with mic access.</div>
             <div style="display:flex;flex-direction:column;gap:0.5rem;">
               <div style="display:flex;align-items:center;gap:0.75rem;">
                 <label class="settings-label">Wake word</label>
@@ -1595,6 +1595,13 @@
               <div style="display:flex;align-items:center;gap:0.75rem;">
                 <label class="settings-label">Sleep phrase</label>
                 <input id="set-voiceAssistantSleepPhrase" type="text" class="settings-select" placeholder="sleep aysh" style="flex:1;padding:5px;">
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <label class="settings-label">Listen with</label>
+                <select id="set-voiceAssistantSttProvider" class="settings-select">
+                  <option value="disabled">Disabled (won't hear anything)</option>
+                  <option value="local">Local (Whisper)</option>
+                </select>
               </div>
               <div id="set-voiceAssistantMsg" style="font-size:11px;color:color-mix(in srgb, var(--fg) 45%, transparent);"></div>
             </div>

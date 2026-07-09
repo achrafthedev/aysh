@@ -2,17 +2,26 @@
 //
 // Aysh Voice Assistant — a Jarvis-style always-listening wake word.
 //
-// Runs entirely client-side: the browser's Web Speech API listens
-// ambiently for the wake word ("aysh" by default). Once woken, the next
-// thing you say is dropped straight into the message composer and sent,
-// and the reply is read back with the existing TTS pipeline
-// (window.aiTTSManager, see tts-ai.js). Saying the sleep phrase (or a
-// period of silence) puts it back to sleep.
+// Holds a single continuous microphone stream open (so the OS mic
+// indicator stays steady, not flickering) and watches its volume with a
+// lightweight voice-activity check. When it detects speech, it records
+// just that segment and sends it to Aysh's own /api/stt/transcribe
+// endpoint — the same one the push-to-talk mic button uses — so
+// transcription runs through whichever Speech-to-Text provider is
+// already configured (local Whisper or an API endpoint), not a browser
+// vendor's cloud service.
 //
-// No server changes are required beyond the two settings that store the
-// wake word / sleep phrase (see src/settings.py DEFAULT_SETTINGS) — the
-// mic never leaves the browser except through the STT/TTS endpoints that
-// already exist for push-to-talk and read-aloud.
+// An earlier version of this file used the browser's native
+// SpeechRecognition API instead. That depends on a cloud speech backend
+// that only official Google Chrome/Edge builds ship a key for — Brave
+// and plain Chromium fail every session instantly with a 'network'
+// error, which is both why it never worked there and why switching to
+// this local-STT approach is the actual fix, not a workaround.
+//
+// Once woken, the next thing you say is dropped straight into the
+// message composer and sent, and the reply is read back with the
+// existing TTS pipeline (window.aiTTSManager, see tts-ai.js). Saying the
+// sleep phrase (or a period of silence) puts it back to sleep.
 
 const STATES = {
   OFF: 'off',
@@ -25,16 +34,31 @@ const STATES = {
 const AUTO_SLEEP_MS = 15000;
 const REPLY_START_TIMEOUT_MS = 40000;
 
-let recognition = null;
+// Voice-activity detection tuning for the always-on mic stream.
+const VAD_POLL_MS = 150;
+const VAD_RMS_THRESHOLD = 0.02;
+const VAD_SILENCE_HANGOVER_MS = 700;
+const VAD_MIN_CHUNK_MS = 400;
+const VAD_MAX_CHUNK_MS = 8000;
+
 let armed = false;
 let state = STATES.OFF;
 let wakeWord = 'aysh';
 let sleepPhrase = 'sleep aysh';
 let autoSleepTimer = null;
-let restartTimer = null;
-let recentRestarts = []; // timestamps, for backoff when the browser keeps ending sessions early
 let orbEl = null;
 let transcriptEl = null;
+
+let sttProvider = 'disabled';
+let mediaStream = null;
+let audioCtx = null;
+let analyser = null;
+let vadDataArray = null;
+let vadTimer = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let chunkStartedAt = null;
+let chunkSilenceStartedAt = null;
 
 function normalize(s) {
   return (s || '').toLowerCase().replace(/[^\w\s']/g, ' ').replace(/\s+/g, ' ').trim();
@@ -247,116 +271,132 @@ function waitForSpeechEnd(prevAutoPlay) {
   }, 250);
 }
 
-// Chromium's "continuous" recognition doesn't actually stay open
-// indefinitely — it frequently ends the session on its own (after each
-// phrase, brief silence, or a network hiccup), and the naive fix of
-// restarting immediately re-acquires the OS microphone every time,
-// which is what makes the mic indicator flicker rapidly. Track recent
-// restarts and back off if they're happening in a tight loop, so the
-// mic is grabbed less often while still recovering automatically.
-function noteRestart() {
-  const now = Date.now();
-  recentRestarts.push(now);
-  recentRestarts = recentRestarts.filter((t) => now - t < 10000);
-}
+// ---- Mic engine ----
 
-function restartDelay() {
-  if (recentRestarts.length >= 6) {
-    console.log('[Aysh Voice] recognition keeps ending quickly — backing off a few seconds.');
-    return 4000;
+function computeRms(dataArray) {
+  let sumSquares = 0;
+  for (let i = 0; i < dataArray.length; i++) {
+    const v = (dataArray[i] - 128) / 128;
+    sumSquares += v * v;
   }
-  if (recentRestarts.length >= 3) return 1200;
-  return 300;
+  return Math.sqrt(sumSquares / dataArray.length);
 }
 
-function startRecognitionEngine() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return false;
+function beginChunkRecording() {
+  if (!mediaStream || mediaRecorder) return;
+  recordedChunks = [];
+  try {
+    mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
+  } catch (e) {
+    try { mediaRecorder = new MediaRecorder(mediaStream); } catch (e2) { mediaRecorder = null; return; }
+  }
+  mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.start();
+  chunkStartedAt = Date.now();
+}
 
-  recognition = new SR();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = navigator.language || 'en-US';
-
-  let sessionStartedAt = Date.now();
-
-  recognition.onresult = (event) => {
-    let interim = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const res = event.results[i];
-      if (res.isFinal) {
-        console.log('[Aysh Voice] heard (final):', JSON.stringify(res[0].transcript));
-        handleUtterance(res[0].transcript);
-      } else {
-        interim += res[0].transcript;
-      }
-    }
-    if (interim) console.log('[Aysh Voice] hearing (interim):', JSON.stringify(interim));
-    updateTranscriptPreview(interim);
+function finishChunkRecording() {
+  if (!mediaRecorder) return;
+  const recorder = mediaRecorder;
+  const startedAt = chunkStartedAt;
+  mediaRecorder = null;
+  chunkStartedAt = null;
+  chunkSilenceStartedAt = null;
+  recorder.onstop = () => {
+    const durationMs = Date.now() - (startedAt || Date.now());
+    const chunks = recordedChunks;
+    recordedChunks = [];
+    if (durationMs < VAD_MIN_CHUNK_MS || chunks.length === 0) return;
+    const blob = new Blob(chunks, { type: 'audio/webm' });
+    transcribeChunk(blob);
   };
+  try { recorder.stop(); } catch (e) { /* ignore */ }
+}
 
-  recognition.onstart = () => {
-    sessionStartedAt = Date.now();
-    console.log('[Aysh Voice] recognition session started');
-  };
-
-  recognition.onerror = (e) => {
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-      console.log('[Aysh Voice] microphone permission denied — turning the assistant off.');
-      disable();
+async function transcribeChunk(blob) {
+  if (!armed) return;
+  if (state === STATES.ASLEEP || state === STATES.AWAKE) updateTranscriptPreview('…');
+  try {
+    const formData = new FormData();
+    formData.append('file', blob, 'aysh-voice-chunk.webm');
+    const res = await fetch('/api/stt/transcribe', { method: 'POST', credentials: 'same-origin', body: formData });
+    if (!res.ok) {
+      console.log('[Aysh Voice] transcription request failed:', res.status);
       return;
     }
-    // 'no-speech' / 'aborted' / 'network' are routine for an always-on
-    // recognizer — onend fires right after and restarts it. Logged (not
-    // just a comment) because "the mic light keeps flickering" is much
-    // easier to diagnose with this in the console than by guessing.
-    console.log('[Aysh Voice] recognition error (routine, will restart):', e.error);
-  };
-
-  recognition.onend = () => {
-    const lastedMs = Date.now() - sessionStartedAt;
-    console.log('[Aysh Voice] recognition session ended after', lastedMs, 'ms');
-    if (!armed) return;
-    // Don't fight the push-to-talk recorder for the mic while it's active.
-    const sendBtn = document.querySelector('.send-btn');
-    const manualRecording = sendBtn && sendBtn.classList.contains('recording');
-    if (restartTimer) clearTimeout(restartTimer);
-    const delay = manualRecording ? 1200 : restartDelay();
-    console.log('[Aysh Voice] restarting recognition in', delay, 'ms');
-    restartTimer = setTimeout(() => {
-      if (!armed) return;
-      try {
-        recognition.start();
-        noteRestart();
-      } catch (e) {
-        console.log('[Aysh Voice] restart failed:', e.message);
-      }
-    }, delay);
-  };
-
-  try {
-    recognition.start();
-    recentRestarts = [];
-    console.log('[Aysh Voice] voice assistant armed, listening for the wake word.');
-    return true;
+    const data = await res.json();
+    const text = (data.text || '').trim();
+    if (text) {
+      console.log('[Aysh Voice] heard:', JSON.stringify(text));
+      handleUtterance(text);
+    }
   } catch (e) {
-    console.log('[Aysh Voice] failed to start recognition:', e.message);
-    return false;
+    console.log('[Aysh Voice] transcription error:', e.message);
   }
 }
 
-function stopRecognitionEngine() {
-  recentRestarts = [];
-  if (restartTimer) {
-    clearTimeout(restartTimer);
-    restartTimer = null;
+function vadTick() {
+  if (!armed || !analyser || !vadDataArray) return;
+  // Don't fight the push-to-talk recorder for the mic while it's active.
+  const sendBtn = document.querySelector('.send-btn');
+  if (sendBtn && sendBtn.classList.contains('recording')) return;
+
+  analyser.getByteTimeDomainData(vadDataArray);
+  const rms = computeRms(vadDataArray);
+  const now = Date.now();
+
+  if (rms > VAD_RMS_THRESHOLD) {
+    if (!mediaRecorder) beginChunkRecording();
+    chunkSilenceStartedAt = null;
+    if (chunkStartedAt && now - chunkStartedAt > VAD_MAX_CHUNK_MS) {
+      finishChunkRecording();
+    }
+  } else if (mediaRecorder) {
+    if (!chunkSilenceStartedAt) chunkSilenceStartedAt = now;
+    if (now - chunkSilenceStartedAt > VAD_SILENCE_HANGOVER_MS) {
+      finishChunkRecording();
+    }
   }
-  if (recognition) {
-    const r = recognition;
-    recognition = null;
-    r.onend = null;
-    r.onerror = null;
-    try { r.stop(); } catch (e) { /* ignore */ }
+}
+
+async function startMicEngine() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    console.log('[Aysh Voice] microphone access denied:', e.message);
+    return false;
+  }
+
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  audioCtx = new Ctx();
+  const source = audioCtx.createMediaStreamSource(mediaStream);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 512;
+  vadDataArray = new Uint8Array(analyser.fftSize);
+  source.connect(analyser);
+
+  vadTimer = setInterval(vadTick, VAD_POLL_MS);
+  console.log('[Aysh Voice] voice assistant armed (STT provider: ' + sttProvider + '), listening for the wake word.');
+  return true;
+}
+
+function stopMicEngine() {
+  if (vadTimer) { clearInterval(vadTimer); vadTimer = null; }
+  if (mediaRecorder) {
+    try { mediaRecorder.stop(); } catch (e) { /* ignore */ }
+    mediaRecorder = null;
+  }
+  recordedChunks = [];
+  chunkStartedAt = null;
+  chunkSilenceStartedAt = null;
+  analyser = null;
+  if (audioCtx) {
+    try { audioCtx.close(); } catch (e) { /* ignore */ }
+    audioCtx = null;
+  }
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((t) => t.stop());
+    mediaStream = null;
   }
 }
 
@@ -408,36 +448,51 @@ function buildOrb() {
   updateOrbUI();
 }
 
-export function enable() {
+export async function enable() {
   if (armed) return;
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!window.isSecureContext) {
-    console.warn('[Aysh Voice] requires HTTPS or localhost.');
-    return;
-  }
-  if (!SR) {
-    console.warn('[Aysh Voice] this browser has no speech recognition (try Chrome/Edge).');
+    console.log('[Aysh Voice] requires HTTPS or localhost.');
     return;
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    console.warn('[Aysh Voice] microphone not supported in this browser.');
+    console.log('[Aysh Voice] microphone not supported in this browser.');
+    return;
+  }
+  if (typeof MediaRecorder === 'undefined') {
+    console.log('[Aysh Voice] this browser has no MediaRecorder support.');
     return;
   }
 
-  navigator.mediaDevices.getUserMedia({ audio: true })
-    .then((stream) => {
-      stream.getTracks().forEach((t) => t.stop());
-      armed = true;
-      setState(STATES.ASLEEP);
-      startRecognitionEngine();
-    })
-    .catch(() => console.warn('[Aysh Voice] microphone access denied.'));
+  try {
+    const res = await fetch('/api/stt/stats', { credentials: 'same-origin' });
+    const stats = await res.json();
+    sttProvider = stats.provider || 'disabled';
+    if (!stats.available || sttProvider === 'disabled' || sttProvider === 'browser') {
+      console.log(
+        '[Aysh Voice] needs a server-side Speech-to-Text provider (Local Whisper or an API endpoint) ' +
+        'configured under Settings → AI → Speech to Text — currently: ' + sttProvider + '.'
+      );
+      return;
+    }
+  } catch (e) {
+    console.log('[Aysh Voice] could not check STT availability:', e.message);
+    return;
+  }
+
+  armed = true;
+  const ok = await startMicEngine();
+  if (!ok) {
+    armed = false;
+    setState(STATES.OFF);
+    return;
+  }
+  setState(STATES.ASLEEP);
 }
 
 export function disable() {
   armed = false;
   clearAutoSleep();
-  stopRecognitionEngine();
+  stopMicEngine();
   setState(STATES.OFF);
 }
 
