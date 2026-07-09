@@ -12,6 +12,24 @@
 # GPU-accelerated transcription — it's auto-detected, CPU is used otherwise.
 faster-whisper
 
+# Local text-to-speech (text -> voice) via Kokoro-82M, for the "local" TTS
+# provider. Was previously undocumented here (only mentioned in a code
+# comment) even though it's a hard requirement, not auto-detected like
+# faster-whisper's CPU fallback: this needs an NVIDIA GPU with CUDA — there
+# is no CPU path, _KokoroPipeline._init() bails out entirely if
+# torch.cuda.is_available() is False. Skip this if you don't have a CUDA
+# GPU; use the "browser" or an API endpoint TTS provider instead. Also worth
+# knowing if you're relying on this for a hands-free/voice-assistant flow:
+# browser TTS (window.speechSynthesis) is unreliable on non-Google Chromium
+# builds (Brave, plain Chromium) — they often ship with zero synthesis
+# voices at all, the same underlying "missing Google-proprietary component"
+# issue as browser SpeechRecognition. Local Kokoro sidesteps that entirely.
+# torch isn't pinned here since the right build (CPU vs CUDA, and which CUDA
+# version) depends on your hardware — see https://pytorch.org/get-started/locally/
+# for the right install command, then: pip install kokoro soundfile
+kokoro
+soundfile
+
 # DuckDuckGo as a search provider option.
 # Install if you want DDG in the search-provider dropdown.
 # Alternatives: SearXNG, Brave, Tavily, Serper, Google PSE.

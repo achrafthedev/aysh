@@ -90,7 +90,11 @@ browser-native speech recognition (the obvious first approach) depends on a Goog
 key that only some Chromium builds ship, so it silently fails on Brave and plain Chromium.
 Pick **Local (Whisper)** for a fully offline setup, or an API endpoint if you'd rather not
 run Whisper locally. Replies are read back with your Text-to-Speech setting, same as
-everywhere else in Aysh.
+everywhere else in Aysh — and the same browser-vendor caveat applies there too: browser TTS
+(`window.speechSynthesis`) often has zero voices available on non-Google Chromium builds
+(Brave, plain Chromium), so if replies stay silent, switch **Settings → AI → Text to
+Speech** to **Local (Kokoro-82M, needs an NVIDIA/CUDA GPU)** or an API endpoint instead of
+Browser.
 
 ---
 
