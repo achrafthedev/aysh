@@ -150,14 +150,28 @@ async function loadSettings() {
 
 function speak(text, onDone) {
   const done = onDone || function () {};
+  console.log('[Aysh Voice] speaking:', JSON.stringify(text));
+  // Cancel anything mid-flight first — overlapping speak() calls (e.g. the
+  // wake-up "Yes?" still playing when a reply starts) make some browsers
+  // fire 'interrupted'/'canceled' on the earlier utterance instead of
+  // queueing cleanly, which previously failed silently (see below).
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+  }
   if (window.aiTTSManager && window.aiTTSManager.available) {
-    window.aiTTSManager.play(text).catch(() => {}).then(done, done);
+    window.aiTTSManager.play(text)
+      .catch((e) => { console.log('[Aysh Voice] TTS playback failed:', e && e.message); })
+      .then(done, done);
   } else if ('speechSynthesis' in window) {
     const u = new SpeechSynthesisUtterance(text);
     u.onend = done;
-    u.onerror = done;
+    u.onerror = (e) => {
+      console.log('[Aysh Voice] speechSynthesis error:', e.error);
+      done();
+    };
     window.speechSynthesis.speak(u);
   } else {
+    console.log('[Aysh Voice] no TTS available at all (no aiTTSManager, no speechSynthesis).');
     done();
   }
 }
@@ -373,6 +387,11 @@ async function transcribeChunk(blob) {
 
 function vadTick() {
   if (!armed || !analyser || !vadDataArray) return;
+  // Don't transcribe while Aysh itself is busy/talking — nothing said during
+  // THINKING or SPEAKING should be treated as a new command, and once TTS
+  // audio is actually audible this also avoids the mic picking its own
+  // voice back up as a fresh "utterance".
+  if (state === STATES.THINKING || state === STATES.SPEAKING) return;
   // Don't fight the push-to-talk recorder for the mic while it's active.
   const sendBtn = document.querySelector('.send-btn');
   if (sendBtn && sendBtn.classList.contains('recording')) return;
