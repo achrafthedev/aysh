@@ -41,7 +41,10 @@ const REPLY_START_TIMEOUT_MS = 40000;
 // of otherwise-fine short-word transcriptions coming back wrong.
 const VAD_POLL_MS = 80;
 const VAD_RMS_THRESHOLD = 0.015;
-const VAD_SILENCE_HANGOVER_MS = 700;
+// How long to wait after you stop talking before treating the utterance as
+// finished and sending it off. This is pure added latency on every single
+// turn, so keep it as tight as still reliably avoids cutting off mid-word.
+const VAD_SILENCE_HANGOVER_MS = 450;
 const VAD_MIN_CHUNK_MS = 400;
 const VAD_MAX_CHUNK_MS = 8000;
 
@@ -240,8 +243,13 @@ function handleUtterance(rawText) {
     if (after && after.split(/\s+/).length > 1) {
       sendCommand(after);
     } else {
+      // Just a chime, no spoken "Yes?" — a synthesized reply here adds a
+      // full extra playback round-trip (a second or more) before you can
+      // even start talking, which is exactly the "stupid delay" a real
+      // assistant shouldn't have. The orb turning green is confirmation
+      // enough.
       playChime(true);
-      speak('Yes?', () => armAutoSleep());
+      armAutoSleep();
     }
     return;
   }
@@ -250,9 +258,15 @@ function handleUtterance(rawText) {
     if (containsPhrase(text, sleepPhrase) || containsPhrase(text, 'sleep ' + wakeWord) || containsPhrase(text, wakeWord + ' sleep')) {
       clearAutoSleep();
       playChime(false);
-      speak('Going to sleep.', () => { if (armed) setState(STATES.ASLEEP); });
+      setState(STATES.ASLEEP);
       return;
     }
+    // Ignore single-word blips instead of sending them as chat messages —
+    // short utterances are the least reliable to transcribe (see the
+    // wake-word tuning above) and a stray mis-heard word shouldn't get
+    // typed into chat on its own. This is the "don't write things unless
+    // told" behavior: only multi-word, clearly-intentional speech sends.
+    if (text.split(/\s+/).filter(Boolean).length < 2) return;
     clearAutoSleep();
     sendCommand(text);
   }
@@ -469,8 +483,8 @@ function updateOrbUI() {
     off: 'Voice assistant is off — click to wake Aysh up',
     asleep: `Listening for "${wakeWord}"…`,
     awake: 'Awake — go ahead',
-    thinking: 'Thinking…',
-    speaking: 'Speaking…',
+    thinking: 'Thinking… click to stop',
+    speaking: 'Speaking… click to stop',
   };
   orbEl.title = labels[state] || 'Aysh';
   orbEl.setAttribute('aria-label', labels[state] || 'Aysh voice assistant');
@@ -574,9 +588,30 @@ export function disable() {
   setState(STATES.OFF);
 }
 
+// Stop whatever Aysh is currently doing — mid-generation or mid-reply —
+// and hand control straight back, without fully disarming. This is the
+// "stop it, start it, do whatever I want" control: the mic stays muted
+// during THINKING/SPEAKING (see vadTick) so a spoken "stop" can't be heard
+// then anyway, so the click is the reliable way to interrupt.
+function interrupt() {
+  const sendBtn = document.querySelector('.send-btn');
+  // The main chat's send button already doubles as a stop button while a
+  // reply is streaming (see chat.js's isStreaming branch) — clicking it
+  // again cancels generation the same way the on-screen Stop control does.
+  if (sendBtn) sendBtn.click();
+  if (window.aiTTSManager) window.aiTTSManager.stop();
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+  }
+  clearAutoSleep();
+  setState(STATES.AWAKE);
+  armAutoSleep();
+}
+
 export function toggle() {
-  if (state === STATES.OFF) enable();
-  else disable();
+  if (state === STATES.OFF) { enable(); return; }
+  if (state === STATES.THINKING || state === STATES.SPEAKING) { interrupt(); return; }
+  disable();
 }
 
 export function getState() {
