@@ -40,6 +40,18 @@ Open `http://localhost:7000` when the containers are healthy. The first admin pa
 
 Native installs, GPU notes, Windows/macOS instructions, HTTPS, and configuration live in the [setup guide](docs/setup.md).
 
+### Linux: launch it from your applications menu
+
+If you'd rather have Aysh as a proper app icon than a terminal command:
+
+```bash
+./desktop/install-linux.sh
+```
+
+This sets up a native (non-Docker) venv and adds an "Aysh" entry to your applications
+menu with its own icon. The server only starts on demand, the first time you open it
+from the menu — nothing is installed to run at boot or login.
+
 ## 🎙️ Voice Assistant — say "Aysh"
 
 Aysh can listen for its own name, the way Jarvis listens for "Sir." Turn it on in

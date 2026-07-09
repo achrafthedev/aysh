@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Aysh
+Comment=Self-hosted AI workspace with a wake-word voice assistant
+Exec=__LAUNCHER_PATH__
+Icon=__ICON_PATH__
+Terminal=false
+Categories=Network;Chat;
+StartupWMClass=Aysh
