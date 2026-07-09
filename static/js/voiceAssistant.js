@@ -96,6 +96,23 @@ function fuzzyThreshold(len) {
   return 3;
 }
 
+// Known near-homophones for wake words that aren't real dictionary words.
+// "Aysh" (/eɪʃ/) is a near-homophone of the letter "H" ("aitch", /eɪtʃ/) --
+// differs by one consonant (sh vs ch) -- confirmed from real transcripts
+// ("Hello, H."). Plain edit distance misses this: a single letter is "far"
+// from a 4-letter word by character count alone, even though it's an
+// almost perfect phonetic match, so these are checked as direct hits.
+const WORD_ALIASES = {
+  aysh: ['h', 'aitch', 'age'],
+};
+
+function wordMatches(transcriptWord, phraseWord) {
+  if (transcriptWord === phraseWord) return true;
+  const aliases = WORD_ALIASES[phraseWord];
+  if (aliases && aliases.includes(transcriptWord)) return true;
+  return levenshtein(transcriptWord, phraseWord) <= fuzzyThreshold(phraseWord.length);
+}
+
 function containsPhrase(text, phrase) {
   const t = ' ' + normalize(text) + ' ';
   const p = ' ' + normalize(phrase) + ' ';
@@ -103,16 +120,16 @@ function containsPhrase(text, phrase) {
   if (t.includes(p)) return true;
 
   // Fuzzy fallback: each word of the phrase must appear, in order, among
-  // the transcript's words within a small edit-distance tolerance.
+  // the transcript's words within a small edit-distance tolerance (or a
+  // known alias, see WORD_ALIASES above).
   const phraseWords = normalize(phrase).split(' ').filter(Boolean);
   const textWords = normalize(text).split(' ').filter(Boolean);
   let ti = 0;
   for (const pw of phraseWords) {
-    const threshold = fuzzyThreshold(pw.length);
     let found = false;
     while (ti < textWords.length) {
       const tw = textWords[ti++];
-      if (levenshtein(tw, pw) <= threshold) { found = true; break; }
+      if (wordMatches(tw, pw)) { found = true; break; }
     }
     if (!found) return false;
   }
